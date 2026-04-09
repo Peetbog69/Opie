@@ -1,122 +1,296 @@
-# Opie
+# Opie 🤖
 
-Local-first AI assistant built in Rust. Zero-cost inference for most tasks, with optional API fallback.
+**Local-first AI coding assistant with zero token costs.**
 
-## Philosophy
+Opie is a Rust-based AI agent that runs entirely on your machine using local LLMs. No API keys, no usage limits, no privacy concerns—just a fast, capable coding assistant powered by open-source models.
 
-- **Local by default** - Run models on your hardware, no API costs
-- **Clean & minimal** - Small codebase, easy to understand and modify
-- **Cost-conscious** - Track spend, use API only when needed
-- **Fast iteration** - Build features incrementally
+## Features
 
-## Status
-
-**Phase 1: Core Loop** (Day 1 - Complete)
-- [x] Project structure
-- [x] Config system
-- [x] Local inference (via llama-server HTTP)
-- [x] Working chat loop skeleton
-- [ ] Test with a real model
+✨ **100% Local** - All inference runs on your hardware  
+🚀 **Streaming Responses** - Real-time word-by-word output  
+🛠️ **5 Powerful Tools** - Read/write files, search code, patch files, run commands  
+💾 **Session Persistence** - Save and resume conversations  
+🧠 **Smart Context Management** - Auto-trims to stay within token limits  
+⚡ **Fast** - Optimized for 3B-7B models on consumer hardware  
 
 ## Quick Start
 
-### 1. Install Rust
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
+### Prerequisites
 
-### 2. Get a model and start llama-server
+- **Rust** (1.75+): Install from [rustup.rs](https://rustup.rs)
+- **llama-server** or **Ollama** for local inference
 
-**Option A: llama.cpp**
+### 1. Install a Local LLM Server
+
+**Option A: llama.cpp (Recommended)**
+
 ```bash
-# Download llama.cpp
-git clone https://github.com/ggerganov/llama.cpp
+# Clone and build llama.cpp
+git clone https://github.com/ggml-org/llama.cpp
 cd llama.cpp
-make
+mkdir build && cd build
+cmake .. -DGGML_CUDA=ON  # Remove -DGGML_CUDA=ON if no GPU
+cmake --build . --config Release
 
-# Download a model
-mkdir -p ~/models
-cd ~/models
-wget https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf
+# Download a model (Qwen 2.5 3B Instruct - 1.9GB)
+mkdir -p ../models && cd ../models
+wget https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf
 
-# Start server
-./llama-server -m ~/models/Llama-3.2-3B-Instruct-Q4_K_M.gguf -c 8192
+# Start the server (keep this running)
+cd ../build/bin
+./llama-server -m ../../models/qwen2.5-3b-instruct-q4_k_m.gguf -c 8192 --port 8080
 ```
 
-**Option B: Ollama (easier)**
+**Option B: Ollama (Easier, slightly slower)**
+
 ```bash
 # Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Pull a model and run as server
-ollama serve  # In one terminal
-ollama pull llama3.2  # In another
+# Pull a model
+ollama pull qwen2.5:3b
+
+# Configure Opie to use Ollama (edit ~/.opie/config.toml):
+# server_url = "http://localhost:11434"
 ```
 
-### 3. Run Opie
+### 2. Install Opie
+
 ```bash
-cd ~/projects/opie
-cargo run -- init  # Creates config
-cargo run -- chat  # Start chatting
+git clone https://github.com/Peetbog69/Opie.git
+cd Opie
+cargo build --release
+
+# Optional: Install globally
+sudo cp target/release/opie /usr/local/bin/
 ```
+
+### 3. Initialize Configuration
+
+```bash
+opie init
+# Creates ~/.opie/config.toml with default settings
+```
+
+### 4. Start Chatting!
+
+```bash
+opie chat
+```
+
+## Usage
+
+### Basic Commands
+
+```bash
+# Start a new chat session
+opie chat
+
+# Resume a saved session
+opie chat --load my-project
+
+# List all saved sessions
+opie list
+
+# Delete a session
+opie delete old-session
+
+# Show current configuration
+opie config
+```
+
+### In-Chat Commands
+
+- `/save <name>` - Save current session and exit
+- `quit` or `exit` - Exit without saving
+
+### Example Conversations
+
+```
+You: What files are in the src directory?
+Opie: [runs terminal: ls src/]
+      The src directory contains: main.rs, lib.rs, agent.rs, ...
+
+You: Read src/main.rs and explain what it does
+Opie: [reads file]
+      This is the main entry point. It uses clap for CLI parsing...
+
+You: Find all TODO comments in the codebase
+Opie: [searches files]
+      Found 3 TODO comments:
+      - src/agent.rs:45: TODO: Add error recovery
+      - src/tools/mod.rs:12: TODO: Implement rate limiting
+      ...
+
+You: Change the port from 8080 to 3000 in config.toml
+Opie: [searches for port, then patches]
+      ✓ Updated port to 3000 in config.toml
+
+You: Run the tests
+Opie: [executes: cargo test]
+      Running 12 tests...
+      test result: ok. 12 passed; 0 failed
+```
+
+## Available Tools
+
+Opie has access to 5 built-in tools:
+
+1. **read_file** - Read file contents with line numbers
+2. **write_file** - Create or overwrite files
+3. **terminal** - Execute shell commands
+4. **search_files** - Search for patterns in files (grep-based)
+5. **patch** - Make targeted find-and-replace edits
+
+Tools are invoked automatically when needed—you just chat naturally.
+
+## Recommended Models
+
+Models are listed by size (smaller = faster, larger = smarter):
+
+| Model | Size | Quality | Speed | Best For |
+|-------|------|---------|-------|----------|
+| Qwen 2.5 3B Instruct | 1.9GB | Good | Fast | Daily coding tasks |
+| Llama 3.2 3B Instruct | 2.0GB | Good | Fast | General use |
+| Qwen 2.5 7B Instruct | 4.4GB | Better | Medium | Complex reasoning |
+| DeepSeek Coder 6.7B | 3.8GB | Great | Medium | Code-heavy work |
+| Llama 3.1 8B Instruct | 4.9GB | Best | Slow | Maximum quality |
+
+Download GGUF models from [Hugging Face](https://huggingface.co/models?library=gguf&sort=trending).
+
+### Model Selection Tips
+
+- **3B models**: Great for quick queries, code search, file operations
+- **7B+ models**: Better at understanding complex requirements and generating code
+- Use Q4_K_M quantization for best quality/size balance
+- Ensure your model has "Instruct" or "Chat" in the name
 
 ## Configuration
 
-`~/.opie/config.toml`:
-```toml
-server_url = "http://localhost:8080"  # llama-server endpoint
-api_mode = "never"                     # "never", "fallback", "auto", "always"
-anthropic_api_key = ""                 # optional, for API fallback
+Config file: `~/.opie/config.toml`
 
-[history_dir]
-# Conversation history saved here
+```toml
+# llama-server endpoint
+server_url = "http://localhost:8080"
+
+# For Ollama, use:
+# server_url = "http://localhost:11434"
 ```
+
+Sessions are saved to `~/.opie/sessions/` as JSON files.
 
 ## Architecture
 
-Clean, simple layers:
+Opie is built with:
+
+- **Rust** - Fast, safe, and reliable
+- **llama.cpp** - Efficient local inference
+- **Tokio** - Async runtime
+- **SSE Streaming** - Real-time response delivery
+
+### Project Structure
 
 ```
 src/
-├── config.rs           # TOML config loading (120 lines)
-├── session.rs          # Conversation state (80 lines)
-├── inference/
-│   ├── mod.rs          # Provider trait (20 lines)
-│   └── local.rs        # llama-server HTTP client (90 lines)
-└── main.rs             # CLI entry point (110 lines)
+├── agent.rs        # Tool loop and streaming logic
+├── inference/      # LLM inference (local.rs for llama-server)
+├── session.rs      # Context management and trimming
+├── storage.rs      # Session persistence (save/load)
+├── tools/          # Tool implementations
+│   ├── read_file.rs
+│   ├── write_file.rs
+│   ├── terminal.rs
+│   ├── search_files.rs
+│   └── patch.rs
+└── main.rs         # CLI interface
 ```
 
-**Total: ~420 lines of Rust vs. 50K+ lines in Hermes**
+## Development Phases
+
+Opie was built in 7 phases:
+
+1. ✅ Basic chat with local LLM
+2. ✅ Tool system (read, write, terminal)
+3. ✅ Streaming responses
+4. ✅ Code tools (search, patch)
+5. ✅ Enhanced system prompt
+6. ✅ Context management with auto-trimming
+7. ✅ Session persistence
+
+## Performance
+
+On typical hardware (8GB RAM, modern CPU):
+
+- **3B models**: ~30-50 tokens/sec
+- **7B models**: ~10-20 tokens/sec
+- **Context window**: 8192 tokens (configurable)
+- **Memory usage**: ~4-6GB for 3B models
+
+GPU acceleration via CUDA/Metal significantly improves speed.
+
+## Troubleshooting
+
+### llama-server not responding
+
+```bash
+# Check if it's running
+curl http://localhost:8080/health
+
+# Restart it with verbose logging
+./llama-server -m model.gguf -c 8192 --port 8080 -v
+```
+
+### Context limit errors
+
+The default limit is 6000 tokens. Long conversations auto-trim older messages. To adjust:
+
+Edit `src/session.rs` and change:
+```rust
+max_context: 6000,  // Increase this value
+```
+
+### Model quality issues
+
+Try a larger model (7B+) or adjust temperature in `src/inference/local.rs`:
+```rust
+temperature: Some(0.3),  // Lower = more focused, higher = more creative
+```
 
 ## Roadmap
 
-- [x] **Phase 1**: Core chat loop with local inference (Day 1)
-- [ ] **Phase 2**: Basic tool system (read/write files, run commands) (Week 1)
-- [ ] **Phase 3**: Smart API routing (complexity detection, fallback) (Week 2)
-- [ ] **Phase 4**: Memory & skills (lightweight versions of Hermes features) (Week 3+)
+Potential future features:
 
-## Design Decisions
+- [ ] Multi-model support (switch models on the fly)
+- [ ] Web search integration
+- [ ] Git workflow tools (commit, diff, PR creation)
+- [ ] Multi-file context awareness
+- [ ] REPL improvements (history, tab completion)
+- [ ] Anthropic/OpenAI API fallback for complex tasks
 
-**Why llama-server over direct llama.cpp bindings?**
-- Avoids complex C++ build dependencies
-- Easier to swap backends (Ollama, vLLM, anything with HTTP)
-- Cleaner Rust code
-- Can still use full llama.cpp features (just run the server)
+## Contributing
 
-**Why HTTP over native libs?**
-- Works with any inference backend
-- Simple testing and debugging
-- Clean separation of concerns
+Contributions welcome! Areas that need work:
 
-## Development
-
-```bash
-cargo check      # Fast compile check
-cargo build      # Build debug binary
-cargo run        # Run with default args
-cargo build --release  # Optimized build
-```
+- Additional tools (web search, API calls, etc.)
+- Better error handling and recovery
+- Performance optimizations
+- Documentation improvements
+- Model compatibility testing
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details.
+
+## Acknowledgments
+
+Built on the shoulders of giants:
+
+- [llama.cpp](https://github.com/ggml-org/llama.cpp) - Local inference engine
+- [Qwen](https://github.com/QwenLM/Qwen) - Excellent open-source models
+- Inspired by [Hermes](https://github.com/raphaelsty/hermes) and Claude Code
+
+---
+
+**Made with ❤️ for the local-first AI community**
+
+Star the repo if Opie helps you code faster! ⭐
