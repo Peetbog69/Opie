@@ -103,9 +103,9 @@ async fn run_chat() -> Result<()> {
         print!("Opie: ");
         io::stdout().flush()?;
         
-        let response = agent.run(&mut session, input).await?;
+        agent.run(&mut session, input).await?;
         
-        println!("{}\n", response);
+        println!(); // Extra newline for spacing
     }
     
     Ok(())

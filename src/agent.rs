@@ -29,9 +29,37 @@ impl Agent {
         session.add_user_message(user_input);
         
         // Agent loop - keep going until we get a non-tool response
-        for iteration in 0..MAX_ITERATIONS {
-            let response = self.provider.generate(&session.messages).await
+        for _iteration in 0..MAX_ITERATIONS {
+            use std::io::{self, Write};
+            use std::sync::{Arc, Mutex};
+            
+            let buffer = Arc::new(Mutex::new(String::new()));
+            let is_tool_call = Arc::new(Mutex::new(false));
+            
+            let buffer_clone = buffer.clone();
+            let is_tool_call_clone = is_tool_call.clone();
+            
+            // Stream the response, but detect tool calls early
+            let callback = Arc::new(Mutex::new(move |chunk: &str| {
+                let mut buf = buffer_clone.lock().unwrap();
+                buf.push_str(chunk);
+                
+                // Check if it looks like a tool call (starts with TOOL_CALL:)
+                if buf.contains("TOOL_CALL:") {
+                    *is_tool_call_clone.lock().unwrap() = true;
+                } else if !*is_tool_call_clone.lock().unwrap() {
+                    // Not a tool call yet, print it
+                    print!("{}", chunk);
+                    io::stdout().flush().unwrap();
+                }
+            }));
+            
+            let response = self.provider.generate_stream(&session.messages, callback).await
                 .context("Failed to generate response")?;
+            
+            if !*is_tool_call.lock().unwrap() {
+                println!(); // Newline after streaming normal response
+            }
             
             // Check if response contains a tool call
             if let Some(tool_call) = self.parse_tool_call(&response) {
