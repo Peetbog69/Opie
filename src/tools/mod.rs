@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub mod read_file;
 pub mod write_file;
 pub mod terminal;
+pub mod search_files;
+pub mod patch;
 
 /// Tool call request from the LLM
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,6 +53,8 @@ impl ToolRegistry {
         registry.register(Box::new(read_file::ReadFileTool));
         registry.register(Box::new(write_file::WriteFileTool));
         registry.register(Box::new(terminal::TerminalTool));
+        registry.register(Box::new(search_files::SearchFilesTool));
+        registry.register(Box::new(patch::PatchTool));
         
         registry
     }
