@@ -30,13 +30,12 @@ impl Agent {
         
         // Agent loop - keep going until we get a non-tool response
         for iteration in 0..MAX_ITERATIONS {
-            let prompt = session.to_prompt();
-            let response = self.provider.generate(&prompt).await
+            let response = self.provider.generate(&session.messages).await
                 .context("Failed to generate response")?;
             
             // Check if response contains a tool call
             if let Some(tool_call) = self.parse_tool_call(&response) {
-                println!("  [Tool] Calling {}...", tool_call.name);
+                println!("  [{}] Running...", tool_call.name);
                 
                 // Execute the tool
                 let tool_result = match self.tools.get(&tool_call.name) {
