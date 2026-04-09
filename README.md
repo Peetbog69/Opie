@@ -4,6 +4,8 @@
 
 Opie is a Rust-based AI agent that runs entirely on your machine using local LLMs. No API keys, no usage limits, no privacy concerns—just a fast, capable coding assistant powered by open-source models.
 
+![Opie Demo](demo.gif)
+
 ## Features
 
 ✨ **100% Local** - All inference runs on your hardware  
