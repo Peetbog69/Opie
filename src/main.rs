@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use opie::inference::local::LocalInference;
 use opie::inference::InferenceProvider;
-use opie::{Config, Session};
+use opie::{Agent, Config, Session};
 use std::io::{self, Write};
 use tracing_subscriber;
 
@@ -79,11 +79,7 @@ async fn run_chat() -> Result<()> {
     println!("Connected! (provider: {})\n", model.name());
     
     let mut session = Session::new();
-    
-    // Add system message
-    session.add_system_message(
-        "You are Opie, a helpful AI assistant. Be concise and direct."
-    );
+    let agent = Agent::new(Box::new(model));
     
     println!("Type 'quit' or 'exit' to end the session.\n");
     
@@ -104,17 +100,12 @@ async fn run_chat() -> Result<()> {
             break;
         }
         
-        session.add_user_message(input);
-        
         print!("Opie: ");
         io::stdout().flush()?;
         
-        let prompt = session.to_prompt();
-        let response = model.generate(&prompt).await?;
+        let response = agent.run(&mut session, input).await?;
         
         println!("{}\n", response);
-        
-        session.add_assistant_message(&response);
     }
     
     Ok(())
