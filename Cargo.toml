@@ -13,6 +13,7 @@ tokio = { version = "1.42", features = ["full"] }
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+chrono = "0.4"
 toml = "0.8"
 
 # Local inference - use llama-server via HTTP for now
